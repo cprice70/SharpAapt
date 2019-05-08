@@ -4,9 +4,23 @@ namespace SharpAapt.Demo
 {
     class Program
     {
-        static void Main(string[] args)
+        static async System.Threading.Tasks.Task Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var apkPath = "/Users/$username%/Downloads/test.apk";
+
+            AaptClient.Instance.AaptPath = "PathToAapt";
+
+            var result = AaptClient.Instance.GetBadgingString(apkPath);
+
+            Console.WriteLine("**** Apk Badging ****");
+            Console.WriteLine(result);
+
+            var result2 = await AaptClient.Instance.GetBadgingStringAsync(apkPath);
+
+            Console.WriteLine("**** Apk Badging Async****");
+            Console.WriteLine(result2);
+
+            var badging = AaptClient.Instance.GetBadging(apkPath);
         }
     }
 }
