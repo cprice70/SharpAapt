@@ -10,7 +10,7 @@ namespace SharpAapt
         /// <summary>
         /// The singleton instance of the <see cref="AaptClient"/> class.
         /// </summary>
-        private static AaptClient instance = null;
+        private static AaptClient instance;
 
         private static StringBuilder netOutput;
 
@@ -19,20 +19,9 @@ namespace SharpAapt
         /// </summary>
         public static AaptClient Instance
         {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = new AaptClient();
-                }
+            get => instance ?? (instance = new AaptClient());
 
-                return instance;
-            }
-
-            set
-            {
-                instance = value;
-            }
+            set => instance = value;
         }
 
         public string AaptPath { get; set; } = string.Empty;
@@ -45,7 +34,7 @@ namespace SharpAapt
 
             var apkBadging = new ApkBadging(badging);
 
-            return null;
+            return apkBadging;
         }
 
         public string GetBadgingString(string apkPath)
@@ -53,13 +42,18 @@ namespace SharpAapt
             if (string.IsNullOrWhiteSpace(AaptPath)) throw new Exception("Aapt path not set. Use AaptClient.Install.AaptPath");
             
             netOutput = new StringBuilder();
-            var p = new Process();
-            p.StartInfo.FileName = AaptPath;
-            p.StartInfo.UseShellExecute = false;
-            p.StartInfo.RedirectStandardOutput = true;
-            p.StartInfo.RedirectStandardError = true;
-            p.StartInfo.CreateNoWindow = true;
-            p.StartInfo.Arguments = $"dump badging {apkPath}";
+            var p = new Process
+            {
+                StartInfo =
+                {
+                    FileName = AaptPath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    Arguments = $"dump badging {apkPath}"
+                }
+            };
             p.Start();
 
             p.OutputDataReceived += NetOutputDataHandler;
@@ -89,7 +83,7 @@ namespace SharpAapt
             DataReceivedEventArgs outLine)
         {
             // Collect the net view command output.
-            if (!String.IsNullOrEmpty(outLine.Data))
+            if (!string.IsNullOrEmpty(outLine.Data))
             {
                 // Add the text to the collected output.
                 netOutput.Append(Environment.NewLine + "  " + outLine.Data);
