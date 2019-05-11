@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -8,42 +10,62 @@ namespace SharpAapt
     {
         public ApkBadging(string apkBadgingString)
         {
-            Regex value_regex = new Regex(@"(?<=\')(.*?)(?=\')");
+            var valueRegex = new Regex(@"(?<=\')(.*?)(?=\')");
 
             var results = apkBadgingString.Split('\n');
 
             // Get SdkVersion
-            var vline = results.First(line => line.Contains("sdkVersion:"));
-            Regex regex = new Regex("\\d+");
-            var match = regex.Match(vline);
+            var versionLine = results.First(line => line.Contains("sdkVersion:"));
+            var regex = new Regex("\\d+");
+            var match = regex.Match(versionLine);
             SdkVersionLevel = Convert.ToInt32(match.Value);
 
             // Get SdkVersion
-            var tline = results.First(line => line.Contains("targetSdkVersion:"));
-            match = regex.Match(tline);
+            var targetLine = results.First(line => line.Contains("targetSdkVersion:"));
+            match = regex.Match(targetLine);
             TargetSdkVersionLevel = Convert.ToInt32(match.Value);
 
             // Get InstallLocation
             var installLine = results.First(line => line.Contains("install-location:"));
-            var install_match = value_regex.Match(installLine);
-            InstallLocation = install_match.Value;
+            var installMatch = valueRegex.Match(installLine);
+            InstallLocation = installMatch.Value;
 
-            // Get InstallLocation
-            var packageline = results.First(line => line.Contains("package:"));
-            var packagelineValue = packageline.Split(':');
-            var packageValues = packagelineValue[1].Split(' ');
+            // Get Package Info
+            var packageLine = results.First(line => line.Contains("package:"));
+            var packageLineValue = packageLine.Split(':');
+            var packageValues = packageLineValue[1].Split(' ');
 
             var packageName = packageValues.First(line => line.Contains("name"));
-            var packageName_match = value_regex.Match(packageName);
-            PackageName = packageName_match.Value;
+            var packageNameMatch = valueRegex.Match(packageName);
+            PackageName = packageNameMatch.Value;
 
             var version = packageValues.First(line => line.Contains("versionName"));
-            var version_match = value_regex.Match(version);
-            VersionName = new Version(version_match.Value);
+            var versionMatch = valueRegex.Match(version);
+            VersionName = new Version(versionMatch.Value);
 
             var versionCode = packageValues.First(line => line.Contains("versionCode"));
-            var versionCode_match = value_regex.Match(versionCode);
-            VersionCode = Convert.ToInt32(versionCode_match.Value);
+            var versionCodeMatch = valueRegex.Match(versionCode);
+            VersionCode = Convert.ToInt32(versionCodeMatch.Value);
+            
+            // Get Application Labels
+            var applicationLabelLine = results.Where(line => line.Contains("application-label")).ToList();
+            foreach (var t in applicationLabelLine)
+            {
+                var appLine = t.Trim().Remove(0, "application-label".Length);
+                var values = appLine.Split(':');
+                if (string.IsNullOrEmpty(values[0]))
+                    values[0] = "culture-neutral";
+                
+                ApplicationLabels.Add(values[0].TrimStart('-'), values[1]);
+            }
+            
+            //Permissions uses-permission: name='android.permission.BLUETOOTH'
+            var permissionsLines = results.Where(line => line.Contains("uses-permission")).ToList();
+            foreach (var p in permissionsLines)
+            {
+                var permissionMatch = valueRegex.Match(p);
+                Permissions.Add(permissionMatch.Value);
+            }
         }
 
         public int SdkVersionLevel { get; }
@@ -57,5 +79,10 @@ namespace SharpAapt
         public Version VersionName { get; }
 
         public int VersionCode { get; }
+        
+        public Dictionary<string, string> ApplicationLabels { get; } = new Dictionary<string, string>();
+        
+        public List<string> Permissions { get; } = new List<string>();
+    
     }
 }
