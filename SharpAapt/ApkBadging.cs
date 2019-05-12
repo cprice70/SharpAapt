@@ -9,13 +9,6 @@ namespace SharpAapt
     {
         public ApkBadging(string apkBadgingString)
         {
-            const string valuePattern = @"(?<=\')(\S+)(?=\')";
-            var valueRegex = new Regex(valuePattern);
-            const string namePattern = @"(?<=name\=\')(.*?)(?=\')";
-            var nameRegex = new Regex(namePattern);
-            const string reasonPattern = @"(?<=reason\=\')(.*?)(?=\')";
-            var reasonRegex = new Regex(reasonPattern);
-            
             var results = apkBadgingString.Split('\n');
 
             // Get SdkVersion
@@ -31,7 +24,7 @@ namespace SharpAapt
 
             // Get InstallLocation
             var installLine = results.First(line => line.Contains("install-location:"));
-            var installMatch = valueRegex.Match(installLine);
+            var installMatch = RegexHelpers.ValueRegex.Match(installLine);
             InstallLocation = installMatch.Value;
 
             // Get Package Info
@@ -40,15 +33,15 @@ namespace SharpAapt
             var packageValues = packageLineValue[1].Split(' ');
 
             var packageName = packageValues.First(line => line.Contains("name"));
-            var packageNameMatch = valueRegex.Match(packageName);
+            var packageNameMatch = RegexHelpers.ValueRegex.Match(packageName);
             PackageName = packageNameMatch.Value;
 
             var version = packageValues.First(line => line.Contains("versionName"));
-            var versionMatch = valueRegex.Match(version);
+            var versionMatch = RegexHelpers.ValueRegex.Match(version);
             VersionName = new Version(versionMatch.Value);
 
             var versionCode = packageValues.First(line => line.Contains("versionCode"));
-            var versionCodeMatch = valueRegex.Match(versionCode);
+            var versionCodeMatch = RegexHelpers.ValueRegex.Match(versionCode);
             VersionCode = Convert.ToInt32(versionCodeMatch.Value);
             
             // Get Application Labels
@@ -59,7 +52,7 @@ namespace SharpAapt
                 var values = appLine.Split(':');
                 if (string.IsNullOrEmpty(values[0]))
                     values[0] = "culture-neutral";
-                var labelMatch = valueRegex.Match(values[1]);
+                var labelMatch = RegexHelpers.ValueRegex.Match(values[1]);
                 ApplicationLabels.Add(values[0].TrimStart('-'), labelMatch.Value);
             }
             
@@ -67,7 +60,7 @@ namespace SharpAapt
             var permissionsLines = results.Where(line => line.Contains("uses-permission")).ToList();
             foreach (var p in permissionsLines)
             {
-                var permissionMatch = valueRegex.Match(p);
+                var permissionMatch = RegexHelpers.ValueRegex.Match(p);
                 Permissions.Add(permissionMatch.Value);
             }
 
@@ -76,7 +69,7 @@ namespace SharpAapt
             {
                 var iconLine = icon.Trim().Remove(0, "application-icon-".Length);
                 var values = iconLine.Split(':');
-                var iconMatch = valueRegex.Match(values[1]);
+                var iconMatch = RegexHelpers.ValueRegex.Match(values[1]);
                 ApplicationIcons.Add(values[0], iconMatch.Value);
             }
             
@@ -85,48 +78,48 @@ namespace SharpAapt
             {
                 var values = applicationLine.Split(' ');
                 var labelLine = values.First(line => line.Contains("label="));
-                ApplicationLabel = valueRegex.Match(labelLine).Value;
+                ApplicationLabel = RegexHelpers.ValueRegex.Match(labelLine).Value;
                 
                 var iconLine = values.First(line => line.Contains("icon="));
-                ApplicationIcon = valueRegex.Match(iconLine).Value;
+                ApplicationIcon = RegexHelpers.ValueRegex.Match(iconLine).Value;
             }
             
             var screensLine = results.First(line => line.Contains("supports-screens:"));
             {
-                var values = Regex.Matches(screensLine, valuePattern);
+                var values = Regex.Matches(screensLine, RegexHelpers.ValuePattern);
                 ScreenSizes = values.Cast<Match>().Select(screenMatch => screenMatch.Value).ToList();
             }
             
             var densitiesLine = results.First(line => line.Contains("densities:"));
             {
-                var values = Regex.Matches(densitiesLine, valuePattern);
+                var values = Regex.Matches(densitiesLine, RegexHelpers.ValuePattern);
                 Densities = values.Cast<Match>().Select(density => Convert.ToInt32(density.Value)).ToList();
             }
             
             var localesLine = results.First(line => line.Contains("locales:"));
             {
-                var values = Regex.Matches(localesLine, valuePattern);
+                var values = Regex.Matches(localesLine, RegexHelpers.ValuePattern);
                 Locales = values.Cast<Match>().Select(locale => locale.Value).ToList();
             }
 
             var anyDensityLine = results.First(line => line.Contains("supports-any-density:"));
-            SupportsAnyDensity = Convert.ToBoolean(valueRegex.Match(anyDensityLine).Value);
+            SupportsAnyDensity = Convert.ToBoolean(RegexHelpers.ValueRegex.Match(anyDensityLine).Value);
             
             var nativeCodeLine = results.First(line => line.Contains("native-code:"));
-            NativeCode = valueRegex.Match(nativeCodeLine).Value;
+            NativeCode = RegexHelpers.ValueRegex.Match(nativeCodeLine).Value;
 
             //Feature Group
             var featureGroupLine = results.First(line => line.Contains("feature-group:"));
             {
-                AppFeatureGroup = new FeatureGroup {Label = nameRegex.Match(featureGroupLine).Value};
+                AppFeatureGroup = new FeatureGroup {Label = RegexHelpers.NameRegex.Match(featureGroupLine).Value};
 
                 var features = results.Where(line => line.Contains("uses-feature:"));
                 foreach (var feature in features)
                 {
                     var newFeature = new FeatureGroup.Feature
                     {
-                        Name = nameRegex.Match(feature).Value, 
-                        Reason = reasonRegex.Match(feature).Value
+                        Name = RegexHelpers.NameRegex.Match(feature).Value, 
+                        Reason = RegexHelpers.ReasonRegex.Match(feature).Value
                     };
                     AppFeatureGroup.Features.Add(newFeature);
                 }
@@ -136,8 +129,8 @@ namespace SharpAapt
                 {
                     var newFeature = new FeatureGroup.Feature
                     {
-                        Name = nameRegex.Match(feature).Value, 
-                        Reason = reasonRegex.Match(feature).Value,
+                        Name = RegexHelpers.NameRegex.Match(feature).Value, 
+                        Reason = RegexHelpers.ReasonRegex.Match(feature).Value,
                         Implied = true
                     };
                     AppFeatureGroup.Features.Add(newFeature);
