@@ -23,10 +23,11 @@ namespace SharpAapt
 
             set => instance = value;
         }
-
         public string AaptPath { get; set; } = string.Empty;
 
-        public ApkBadging GetBadging(string apkPath)
+        #region Badging
+       
+        public ApkBadging GetApkBadging(string apkPath)
         {
             var badging = GetBadgingString(apkPath);
 
@@ -79,6 +80,55 @@ namespace SharpAapt
             return tcs1.Task;
         }
 
+        #endregion
+
+        #region Strings
+
+        public ApkStrings GetApkStrings(string apkPath)
+        {
+            var strings = GetStrings(apkPath);
+
+            if (string.IsNullOrWhiteSpace(strings)) return null;
+
+            var apkStrings = new ApkStrings(strings);
+
+            return apkStrings;
+        }
+
+        public string GetStrings(string apkPath)
+        {
+            if (string.IsNullOrWhiteSpace(AaptPath))
+                throw new Exception("Aapt path not set. Use AaptClient.Install.AaptPath");
+
+            netOutput = new StringBuilder();
+            var p = new Process
+            {
+                StartInfo =
+                {
+                    FileName = AaptPath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    Arguments = $"dump strings {apkPath}"
+                }
+            };
+            p.Start();
+
+            p.OutputDataReceived += NetOutputDataHandler;
+
+            p.ErrorDataReceived += NetOutputDataHandler;
+
+            p.Start();
+            p.BeginOutputReadLine();
+            p.BeginErrorReadLine();
+            p.WaitForExit();
+            return netOutput.ToString();
+        }
+
+        #endregion
+        
+        
         private static void NetOutputDataHandler(object sendingProcess,
             DataReceivedEventArgs outLine)
         {
