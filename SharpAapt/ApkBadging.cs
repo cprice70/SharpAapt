@@ -23,9 +23,12 @@ namespace SharpAapt
             TargetSdkVersionLevel = Convert.ToInt32(match.Value);
 
             // Get InstallLocation
-            var installLine = results.First(line => line.Contains("install-location:"));
-            var installMatch = RegexHelpers.ValueRegex.Match(installLine);
-            InstallLocation = installMatch.Value;
+            var installLine = results.FirstOrDefault(line => line.Contains("install-location:"));
+            if (!string.IsNullOrEmpty(installLine))
+            {
+                var installMatch = RegexHelpers.ValueRegex.Match(installLine);
+                InstallLocation = installMatch.Value;
+            }
 
             // Get Package Info
             var packageLine = results.First(line => line.Contains("package:"));
@@ -38,7 +41,7 @@ namespace SharpAapt
 
             var version = packageValues.First(line => line.Contains("versionName"));
             var versionMatch = RegexHelpers.ValueRegex.Match(version);
-            VersionName = new Version(versionMatch.Value);
+            VersionName = versionMatch.Value;
 
             var versionCode = packageValues.First(line => line.Contains("versionCode"));
             var versionCodeMatch = RegexHelpers.ValueRegex.Match(versionCode);
@@ -105,8 +108,9 @@ namespace SharpAapt
             var anyDensityLine = results.First(line => line.Contains("supports-any-density:"));
             SupportsAnyDensity = Convert.ToBoolean(RegexHelpers.ValueRegex.Match(anyDensityLine).Value);
             
-            var nativeCodeLine = results.First(line => line.Contains("native-code:"));
-            NativeCode = RegexHelpers.ValueRegex.Match(nativeCodeLine).Value;
+            var nativeCodeLine = results.FirstOrDefault(line => line.Contains("native-code:"));
+            if (!string.IsNullOrEmpty(nativeCodeLine))
+                NativeCode = RegexHelpers.ValueRegex.Match(nativeCodeLine).Value;
 
             //Feature Group
             var featureGroupLine = results.First(line => line.Contains("feature-group:"));
@@ -146,7 +150,7 @@ namespace SharpAapt
 
         public string PackageName { get; }
 
-        public Version VersionName { get; }
+        public string VersionName { get; }
 
         public int VersionCode { get; }
         
