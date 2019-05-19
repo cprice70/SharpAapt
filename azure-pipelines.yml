@@ -26,3 +26,11 @@ steps:
 - task: VSBuild@1
   inputs:
     solution: '$(solution)'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'pack'
+    feedsToUse: 'select'
+    packagesToPack: '**/SharpAapt.csproj'
+    nobuild: true
+    versioningScheme: 'off'
