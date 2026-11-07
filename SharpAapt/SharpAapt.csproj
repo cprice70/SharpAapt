@@ -6,7 +6,7 @@
 
   <PropertyGroup>
     <PackageId>sharpaapt</PackageId>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <Authors>cprice70</Authors>
     <Title>SharpAapt</Title>
     <Description>SharpAapt is a library that wraps the Android build tools aapt and aapt2 to read APK badging, permissions, strings, configurations and XML.</Description>
