@@ -2,19 +2,25 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <PackageId>sharpaapt</PackageId>
-    <PackageVersion>0.1</PackageVersion>
+    <Version>0.2.0</Version>
     <Authors>cprice70</Authors>
-    <Owners>cprice70</Owners>
-    <PackageProjectUrl>https://github.com/cprice70/SharpAapt</PackageProjectUrl>
-    <Summary>SharpAapt is a library that wraps the Android build tool Aapt</Summary>
     <Title>SharpAapt</Title>
-    <Description>SharpAapt is a library that wraps the Android build tool Aapt</Description>
+    <Description>SharpAapt is a library that wraps the Android build tools aapt and aapt2 to read APK badging, permissions, strings, configurations and XML.</Description>
+    <PackageTags>android;apk;aapt;aapt2;badging</PackageTags>
     <Copyright>Copyright (c) 2019 Chris Price</Copyright>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/cprice70/SharpAapt/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/cprice70/SharpAapt</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/cprice70/SharpAapt</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NuGet.Build.Packaging" Version="0.2.0" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <InternalsVisibleTo Include="SharpAapt.Tests" />
   </ItemGroup>
 </Project>
