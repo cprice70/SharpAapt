@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using SharpAapt;
@@ -17,7 +18,8 @@ namespace SharpAapt.Tests
         private const string FakeAapt =
             "#!/bin/sh\n" +
             "echo run >> \"$(dirname \"$0\")/runs.log\"\n" +
-            "case \"$3\" in *fail*) echo 'ERROR: dump failed' >&2; exit 1;; esac\n" +
+            "case \"$*\" in *fail*) echo 'ERROR: dump failed' >&2; exit 1;; esac\n" +
+            "case \"$*\" in *slow*) exec sleep 10;; esac\n" +
             "printf 'arg:%s\\n' \"$@\"\n";
 
         private string workDir;
@@ -36,6 +38,14 @@ namespace SharpAapt.Tests
             Process.Start("chmod", $"+x \"{script}\"").WaitForExit();
 
             client = new AaptClient { AaptPath = script };
+        }
+
+        private AaptClient Aapt2Client()
+        {
+            var script = Path.Combine(workDir, "aapt2");
+            File.Copy(client.AaptPath, script);
+            Process.Start("chmod", $"+x \"{script}\"").WaitForExit();
+            return new AaptClient { AaptPath = script };
         }
 
         [TearDown]
@@ -102,6 +112,52 @@ namespace SharpAapt.Tests
             var empty = new AaptClient();
             var ex = Assert.Throws<InvalidOperationException>(() => empty.GetStrings("/tmp/app.apk"));
             Assert.That(ex.Message, Does.Contain("AaptClient.Instance.AaptPath"));
+        }
+
+        [Test]
+        public void TimesOutAndKillsStuckProcess()
+        {
+            client.Timeout = TimeSpan.FromMilliseconds(300);
+            var watch = Stopwatch.StartNew();
+
+            Assert.Throws<TimeoutException>(() => client.GetStrings("/tmp/slow.apk"));
+            Assert.That(watch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(5)));
+        }
+
+        [Test]
+        public void AsyncCallCanBeCancelled()
+        {
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(300)))
+            {
+                var watch = Stopwatch.StartNew();
+                Assert.That(async () => await client.GetStringsAsync("/tmp/slow.apk", cts.Token),
+                    Throws.InstanceOf<OperationCanceledException>());
+                Assert.That(watch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(5)));
+            }
+        }
+
+        [Test]
+        public async Task AsyncParsedMethodsReturnResults()
+        {
+            var configs = await client.GetApkConfigurationsAsync("/tmp/app.apk");
+
+            Assert.That(configs, Is.EqualTo(new[] { "arg:dump", "arg:configurations", "arg:/tmp/app.apk" }));
+        }
+
+        [Test]
+        public void XmlTreeUsesAaptArgumentOrder()
+        {
+            var output = client.GetApkXmlTree("/tmp/app.apk");
+
+            Assert.That(Lines(output), Is.EqualTo(new[] { "arg:dump", "arg:xmltree", "arg:/tmp/app.apk", "arg:AndroidManifest.xml" }));
+        }
+
+        [Test]
+        public void XmlStringsUsesAapt2FileFlag()
+        {
+            var output = Aapt2Client().GetApkXmlStrings("/tmp/app.apk", "res/layout/main.xml");
+
+            Assert.That(Lines(output), Is.EqualTo(new[] { "arg:dump", "arg:xmlstrings", "arg:--file", "arg:res/layout/main.xml", "arg:/tmp/app.apk" }));
         }
     }
 }
