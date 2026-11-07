@@ -6,7 +6,7 @@
 
   <PropertyGroup>
     <PackageId>sharpaapt</PackageId>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <Authors>cprice70</Authors>
     <Title>SharpAapt</Title>
     <Description>SharpAapt is a library that wraps the Android build tools aapt and aapt2 to read APK badging, permissions, strings, configurations and XML.</Description>
@@ -20,7 +20,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <!-- The nuget.org page shows PACKAGE.md (written for package users); the repo README.md is for contributors. -->
+    <None Include="PACKAGE.md" Pack="true" PackagePath="README.md" />
     <InternalsVisibleTo Include="SharpAapt.Tests" />
   </ItemGroup>
 </Project>
