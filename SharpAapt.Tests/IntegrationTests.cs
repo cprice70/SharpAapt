@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -29,7 +30,7 @@ namespace SharpAapt.Tests
         {
             var path = AaptLocator.FindTool(AaptLocator.DefaultSdkRoots(), tool);
             if (path == null)
-                Assert.Ignore($"{tool} not found. Set ANDROID_HOME to an SDK with build-tools installed.");
+                RequireSdk.Missing($"{tool} not found. Set ANDROID_HOME to an SDK with build-tools installed.");
 
             client = new AaptClient { AaptPath = path };
             apk = Path.Combine(TestContext.CurrentContext.TestDirectory, "Fixtures", "test.apk");
@@ -50,7 +51,59 @@ namespace SharpAapt.Tests
             Assert.That(badging.ApplicationLabels["de"], Is.EqualTo("Meine App: Deluxe"));
             Assert.That(badging.Permissions, Is.EqualTo(new[] { "android.permission.INTERNET", "android.permission.BLUETOOTH" }));
             Assert.That(badging.Locales, Does.Contain("de"));
-            Assert.That(badging.NativeCode, Is.Empty);
+        }
+
+        [Test]
+        public void NativeCodeListsEveryAbi()
+        {
+            var badging = client.GetApkBadging(apk);
+
+            Assert.That(badging.NativeCode, Is.EquivalentTo(new[] { "arm64-v8a", "armeabi-v7a" }));
+        }
+
+        [Test]
+        public void IconsArePerDensity()
+        {
+            var badging = client.GetApkBadging(apk);
+
+            Assert.That(badging.ApplicationIcons.Keys, Is.EquivalentTo(new[] { "160", "240" }));
+            Assert.That(badging.ApplicationIcons["160"], Does.StartWith("res/mipmap-mdpi").And.EndWith("ic_launcher.png"));
+            Assert.That(badging.ApplicationIcons["240"], Does.StartWith("res/mipmap-hdpi").And.EndWith("ic_launcher.png"));
+            Assert.That(badging.ApplicationIcon, Is.EqualTo(badging.ApplicationIcons["160"]));
+        }
+
+        [Test]
+        public void PathWithSpaces()
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "sharpaapt it " + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                var spaced = Path.Combine(dir, "my test app.apk");
+                File.Copy(apk, spaced);
+
+                Assert.That(client.GetApkBadging(spaced).PackageName, Is.EqualTo("com.example.sharpaapt"));
+            }
+            finally
+            {
+                Directory.Delete(dir, true);
+            }
+        }
+
+        [Test]
+        public void NonZipFileThrowsAaptException()
+        {
+            var bogus = Path.Combine(Path.GetTempPath(), "sharpaapt-not-a-zip-" + Guid.NewGuid().ToString("N") + ".apk");
+            File.WriteAllText(bogus, "this is not a zip archive");
+            try
+            {
+                var ex = Assert.Throws<AaptException>(() => client.GetBadgingString(bogus));
+                Assert.That(ex.ExitCode, Is.Not.EqualTo(0));
+            }
+            finally
+            {
+                File.Delete(bogus);
+            }
         }
 
         [Test]

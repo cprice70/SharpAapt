@@ -17,5 +17,14 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 "$AAPT2" compile --dir res -o "$WORK/res.zip"
-"$AAPT2" link -o ../Fixtures/test.apk -I "$ANDROID_JAR" --manifest AndroidManifest.xml "$WORK/res.zip"
-echo "Wrote $(cd ../Fixtures && pwd)/test.apk"
+APK="$(cd ../Fixtures && pwd)/test.apk"
+"$AAPT2" link -o "$APK" -I "$ANDROID_JAR" --manifest AndroidManifest.xml "$WORK/res.zip"
+
+# Placeholder native libraries, so badging reports native-code for two ABIs.
+for ABI in arm64-v8a armeabi-v7a; do
+  mkdir -p "$WORK/native/lib/$ABI"
+  printf 'stub' > "$WORK/native/lib/$ABI/libstub.so"
+done
+(cd "$WORK/native" && zip -qrD "$APK" lib)
+
+echo "Wrote $APK"
