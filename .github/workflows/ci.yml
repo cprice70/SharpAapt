@@ -21,7 +21,19 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Windows covers aapt2.exe lookup and Windows argument quoting; the fake-aapt client
+    # tests are POSIX-only and skip there. Packing happens once, on Ubuntu.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      # GitHub-hosted runners ship the Android SDK; fail rather than skip if it goes missing.
+      SHARPAAPT_REQUIRE_SDK: 'true'
 
     steps:
       - uses: actions/checkout@v7
@@ -51,10 +63,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results
+          name: test-results-${{ matrix.os }}
           path: TestResults
 
       - name: Pack
+        if: matrix.os == 'ubuntu-latest'
         run: >
           dotnet pack SharpAapt/SharpAapt.csproj
           --configuration Release --no-build
@@ -62,6 +75,7 @@ jobs:
           ${VERSION:+-p:Version=$VERSION}
 
       - name: Upload package
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v7
         with:
           name: nuget-package
