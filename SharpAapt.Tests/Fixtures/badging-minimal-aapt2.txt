@@ -1,0 +1,4 @@
+package: name='com.example.minimal' versionCode='7' versionName='' platformBuildVersionName='14' platformBuildVersionCode='34'
+minSdkVersion:'21'
+uses-permission: name='android.permission.INTERNET'
+locales: '--_--'

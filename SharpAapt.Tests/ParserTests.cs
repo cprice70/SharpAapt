@@ -60,6 +60,7 @@ namespace SharpAapt.Tests
             Assert.That(badging.Densities, Is.EqualTo(new[] { 160, 240, 65535 }));
             Assert.That(badging.Locales, Is.EqualTo(new[] { "--_--", "de" }));
             Assert.That(badging.SupportsAnyDensity, Is.True);
+            Assert.That(badging.NativeCode, Is.EqualTo(new[] { "arm64-v8a", "armeabi-v7a" }));
         }
 
         [Test]
@@ -84,8 +85,66 @@ namespace SharpAapt.Tests
         }
     }
 
+    public class ApkBadgingMinimalTests
+    {
+        private ApkBadging badging;
+
+        [SetUp]
+        public void Setup()
+        {
+            var text = File.ReadAllText(Path.Combine(TestContext.CurrentContext.TestDirectory, "Fixtures", "badging-minimal-aapt2.txt"));
+            badging = new ApkBadging(text);
+        }
+
+        [Test]
+        public void ReadsAapt2MinSdkVersion()
+        {
+            Assert.That(badging.SdkVersionLevel, Is.EqualTo(21));
+        }
+
+        [Test]
+        public void MissingScalarLinesAreNull()
+        {
+            Assert.That(badging.TargetSdkVersionLevel, Is.Null);
+            Assert.That(badging.InstallLocation, Is.Null);
+            Assert.That(badging.ApplicationLabel, Is.Null);
+            Assert.That(badging.ApplicationIcon, Is.Null);
+            Assert.That(badging.SupportsAnyDensity, Is.Null);
+        }
+
+        [Test]
+        public void MissingListLinesAreEmpty()
+        {
+            Assert.That(badging.ScreenSizes, Is.Empty);
+            Assert.That(badging.Densities, Is.Empty);
+            Assert.That(badging.NativeCode, Is.Empty);
+            Assert.That(badging.ApplicationIcons, Is.Empty);
+            Assert.That(badging.ApplicationLabels, Is.Empty);
+            Assert.That(badging.AppFeatureGroup.Features, Is.Empty);
+        }
+
+        [Test]
+        public void StillReadsLinesThatArePresent()
+        {
+            Assert.That(badging.PackageName, Is.EqualTo("com.example.minimal"));
+            Assert.That(badging.VersionCode, Is.EqualTo(7));
+            Assert.That(badging.VersionName, Is.EqualTo(string.Empty));
+            Assert.That(badging.Permissions, Is.EqualTo(new[] { "android.permission.INTERNET" }));
+            Assert.That(badging.Locales, Is.EqualTo(new[] { "--_--" }));
+        }
+    }
+
     public class ApkStringsTests
     {
+        [Test]
+        public void ReadsAaptFormatWithoutSpaceBeforeColon()
+        {
+            var strings = new ApkStrings("String #0: Hello\nString #1: a:b").Strings;
+
+            Assert.That(strings["String #0"], Is.EqualTo("Hello"));
+            Assert.That(strings["String #1"], Is.EqualTo("a:b"));
+        }
+
         [Test]
         public void KeepsColonsInValues()
         {
