@@ -68,10 +68,16 @@ jobs:
           path: artifacts/*.nupkg
 
   publish:
-    # Pushes the package to nuget.org when a v* tag is pushed. Needs the NUGET_API_KEY repository secret.
+    # Pushes the package to nuget.org when a v* tag is pushed, using nuget.org trusted publishing:
+    # GitHub's OIDC token is exchanged for a one-hour API key, so no long-lived key is stored.
+    # The nuget.org policy must name this repository and the workflow file "ci.yml". The
+    # NUGET_USER secret holds the nuget.org profile name (not the email address).
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/setup-dotnet@v4
@@ -83,9 +89,15 @@ jobs:
           name: nuget-package
           path: artifacts
 
+      - name: NuGet login (OIDC to temporary API key)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Push to nuget.org
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
         run: >
           dotnet nuget push "artifacts/*.nupkg"
           --api-key "$NUGET_API_KEY"

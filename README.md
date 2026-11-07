@@ -84,7 +84,7 @@ The script uses `ANDROID_HOME`, or takes the SDK path as its first argument, and
 
 ### Releasing
 
-CI runs on every push and pull request to `master`. Pushing a tag like `v0.2.0` builds and packs that version and pushes it to nuget.org. This needs a `NUGET_API_KEY` repository secret.
+CI runs on every push and pull request to `master`. Pushing a tag like `v0.2.0` builds and packs that version and pushes it to nuget.org using [trusted publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing), so no API key is stored. This needs a nuget.org trusted publishing policy for this repository with workflow file `ci.yml`, and a `NUGET_USER` repository secret holding the nuget.org profile name.
 
 ## License
 
