@@ -1,0 +1,4 @@
+String pool of 3 unique UTF-8 non-sorted strings, 3 entries and 0 styles using 120 bytes:
+String #0 : https://example.com/path
+String #1 : Hello
+String #2 : a:b:c

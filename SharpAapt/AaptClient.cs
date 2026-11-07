@@ -15,8 +15,6 @@ namespace SharpAapt
         /// </summary>
         private static AaptClient instance;
 
-        private static StringBuilder netOutput;
-
         /// <summary>
         /// Gets or sets the current global instance of the <see cref="AaptClient"/> singleton.
         /// </summary>
@@ -42,25 +40,9 @@ namespace SharpAapt
             return apkBadging;
         }
 
-        public string GetBadgingString(string apkPath)
-        {
-            if (string.IsNullOrWhiteSpace(AaptPath))
-                throw new Exception("Aapt path not set. Use AaptClient.Install.AaptPath");
+        public string GetBadgingString(string apkPath) => GetDumpCommand("badging", apkPath);
 
-            return GetDumpCommand("badging", apkPath);
-        }
-
-        public Task<string> GetBadgingStringAsync(string apkPath)
-        {
-            var tcs1 = new TaskCompletionSource<string>();
-
-            Task.Run(() =>
-            {
-                var result = GetBadgingString(apkPath);
-                tcs1.SetResult(result);
-            });
-            return tcs1.Task;
-        }
+        public Task<string> GetBadgingStringAsync(string apkPath) => Task.Run(() => GetBadgingString(apkPath));
 
         #endregion
 
@@ -122,10 +104,13 @@ namespace SharpAapt
         private string GetDumpCommand(string command, string apkPath)
         {
             if (string.IsNullOrWhiteSpace(AaptPath))
-                throw new Exception("Aapt path not set. Use AaptClient.Install.AaptPath");
-            
-            netOutput = new StringBuilder();
-            var p = new Process
+                throw new InvalidOperationException("Aapt path not set. Use AaptClient.Instance.AaptPath");
+
+            // Buffers are per call so concurrent calls never share output.
+            var output = new StringBuilder();
+            var error = new StringBuilder();
+
+            using (var p = new Process
             {
                 StartInfo =
                 {
@@ -134,33 +119,43 @@ namespace SharpAapt
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    Arguments = $"dump {command} {apkPath}"
+                    Arguments = $"dump {command} {QuoteArgument(apkPath)}"
                 }
-            };
-            p.Start();
+            })
+            {
+                p.OutputDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data)) output.AppendLine(e.Data);
+                };
+                p.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data)) error.AppendLine(e.Data);
+                };
 
-            p.OutputDataReceived += NetOutputDataHandler;
+                p.Start();
+                p.BeginOutputReadLine();
+                p.BeginErrorReadLine();
+                p.WaitForExit();
 
-            p.ErrorDataReceived += NetOutputDataHandler;
+                if (p.ExitCode != 0)
+                {
+                    var stderr = error.ToString().Trim();
+                    throw new AaptException(
+                        $"aapt dump {command} failed with exit code {p.ExitCode}: {stderr}",
+                        p.ExitCode,
+                        stderr);
+                }
 
-            p.Start();
-            p.BeginOutputReadLine();
-            p.BeginErrorReadLine();
-            p.WaitForExit();
-            return netOutput.ToString();
+                return output.ToString();
+            }
+        }
+
+        private static string QuoteArgument(string argument)
+        {
+            if (string.IsNullOrEmpty(argument)) return "\"\"";
+            return "\"" + argument.Replace("\"", "\\\"") + "\"";
         }
 
         #endregion
-        
-        private static void NetOutputDataHandler(object sendingProcess,
-            DataReceivedEventArgs outLine)
-        {
-            // Collect the net view command output.
-            if (!string.IsNullOrEmpty(outLine.Data))
-            {
-                // Add the text to the collected output.
-                netOutput.Append(Environment.NewLine + "  " + outLine.Data);
-            }
-        }
     }
 }

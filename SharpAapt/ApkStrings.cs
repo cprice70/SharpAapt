@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Net;
 
 namespace SharpAapt
 {
@@ -10,24 +7,22 @@ namespace SharpAapt
     {
         public ApkStrings(string input)
         {
-            try
-            {
-                var results = input.Split('\n');
+            var results = input.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-                foreach (var result in results)
-                {
-                    var values = result.Split(':');
-                    if (values.Length < 2) continue;
-                    if (string.IsNullOrEmpty(values[0]) || string.IsNullOrEmpty(values[1])) continue;
-                    Strings.Add(values[0].Trim(), values[1].Trim());
-                }
-            }
-            catch (Exception ex)
+            foreach (var result in results)
             {
-                Debug.WriteLine(ex);
+                // Lines look like "String #12 : value". Split on the first colon only so values keep theirs.
+                var values = result.Split(new[] { ':' }, 2);
+                if (values.Length < 2) continue;
+
+                var key = values[0].Trim();
+                var value = values[1].Trim();
+                if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(value)) continue;
+
+                Strings[key] = value;
             }
         }
-        
+
         public Dictionary<string, string> Strings { get; } = new Dictionary<string, string>();
     }
 }
