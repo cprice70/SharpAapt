@@ -1,11 +1,16 @@
 using System;
+using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using SharpAapt;
 
-namespace Tests
+namespace SharpAapt.Tests
 {
-    public class Tests
+    /// <summary>
+    /// Runs against a real aapt binary and APK. Skipped when either is missing.
+    /// </summary>
+    [Category("Integration")]
+    public class IntegrationTests
     {
         private const string TestApk = @"../../../com.google.android.gm_2019.04.14.246198419.release-61418844_minAPI19(nodpi).apk";
 
@@ -14,6 +19,9 @@ namespace Tests
         {
             var home = Environment.GetEnvironmentVariable("HOME");
             AaptClient.Instance.AaptPath = $"{home}/Library/Developer/Xamarin/android-sdk-macosx/build-tools/28.0.3/aapt";
+
+            if (!File.Exists(AaptClient.Instance.AaptPath) || !File.Exists(TestApk))
+                Assert.Ignore("aapt or test APK not available.");
         }
 
         [Test]
@@ -27,7 +35,7 @@ namespace Tests
         public void AaptApplicationLabelTest()
         {
             var badging = AaptClient.Instance.GetApkBadging(TestApk);
-            
+
             Assert.True(!string.IsNullOrEmpty(badging.ApplicationLabel));
         }
 
@@ -35,7 +43,7 @@ namespace Tests
         public void AaptScreenSizesTest()
         {
             var screens = AaptClient.Instance.GetApkBadging(TestApk);
-            
+
             Assert.True(screens.ScreenSizes.Any());
         }
 
@@ -43,7 +51,7 @@ namespace Tests
         public void AaptConfigurationsTest()
         {
             var configs = AaptClient.Instance.GetApkConfigurations(TestApk);
-            
+
             Assert.True(configs.Any());
         }
 
@@ -51,7 +59,7 @@ namespace Tests
         public void AaptStringsTest()
         {
             var strings = AaptClient.Instance.GetApkStrings(TestApk);
-            
+
             Assert.True(strings.Strings.Any());
         }
     }
